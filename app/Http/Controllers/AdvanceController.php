@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AddAdvanceClient;
 use App\Models\Advance;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class AdvanceController extends Controller
@@ -13,14 +14,25 @@ class AdvanceController extends Controller
         return response()->json(AddAdvanceClient::all());
     }
 
-    public function index()
+    // public function index()
+    // {
+    //     $advance = Advance::with('client') ->whereDate('created_at', now()) // Fetch only today's records
+    //     ->get();
+    //     return response()->json($advance);
+    // }
+
+    public function index(Request $request)
     {
-        $advance = Advance::with('client') ->whereDate('created_at', now()) // Fetch only today's records
-        ->get();
-        return response()->json($advance);
+        $queryDate = $request->input('date');
+
+        $advances = Advance::with('client')
+            ->when($queryDate, function ($query, $queryDate) {
+                $query->whereDate('date', Carbon::parse($queryDate));
+            })
+            ->get();
+
+        return response()->json($advances);
     }
-
-
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -28,11 +40,13 @@ class AdvanceController extends Controller
             'voucher_type' => 'required|string',
             'amount' => 'required|numeric',
             'narration' => 'nullable|string',
+            'date' => 'required|date', // <-- ADD THIS
         ]);
 
         $advance = Advance::create($validated + ['added_by' => auth()->id()]);
         return response()->json($advance, 201);
     }
+
 
     public function update(Request $request, Advance $advance)
     {

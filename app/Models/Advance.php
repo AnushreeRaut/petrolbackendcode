@@ -18,6 +18,7 @@ class Advance extends Model
         'narration',
         'added_by',
         'updated_by',
+        'date',
     ];
 
     public function client()

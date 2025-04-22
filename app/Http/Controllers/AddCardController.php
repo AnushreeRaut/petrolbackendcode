@@ -16,11 +16,11 @@ class AddCardController extends Controller
     }
 
     public function getAddCards()
-{
-    $addCards = AddCard::with(['bankDeposits.bankDeposit'])->get();
+    {
+        $addCards = AddCard::with(['bankDeposits.bankDeposit'])->get();
 
-    return response()->json($addCards);
-}
+        return response()->json($addCards);
+    }
 
 
 
@@ -81,13 +81,11 @@ class AddCardController extends Controller
                 'card' => $card,
                 'bank_deposit_add_cards' => $bankDepositAddCards,
             ], 201);
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Validation Error',
                 'errors' => $e->errors(),
             ], 422);
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -99,57 +97,57 @@ class AddCardController extends Controller
 
 
 
-//     public function store(Request $request)
-// {
-//     try {
-//         $validated = $request->validate([
-//             'petrol_card_machine_no' => 'required|string|max:255', // Adjust as per your requirements
-//             'petrol_card_no' => 'required|string|max:255', // Assuming 'add_cards' is a table
-//             'batch_no' => 'required|string',
-//             'add_bank_deposit_id' => 'required|exists:add_bank_deposits,id', // Assuming 'add_bank_deposits' is a table
-//             'tid_no' => 'required|integer',
-//             'narration' => 'required|string|max:255',
-//         ]);
+    //     public function store(Request $request)
+    // {
+    //     try {
+    //         $validated = $request->validate([
+    //             'petrol_card_machine_no' => 'required|string|max:255', // Adjust as per your requirements
+    //             'petrol_card_no' => 'required|string|max:255', // Assuming 'add_cards' is a table
+    //             'batch_no' => 'required|string',
+    //             'add_bank_deposit_id' => 'required|exists:add_bank_deposits,id', // Assuming 'add_bank_deposits' is a table
+    //             'tid_no' => 'required|integer',
+    //             'narration' => 'required|string|max:255',
+    //         ]);
 
-//         DB::beginTransaction();
+    //         DB::beginTransaction();
 
-//         // Create a new card
-//         $card = AddCard::create([
-//             'petrol_card_machine_no' => $validated['petrol_card_machine_no'],
-//             'petrol_card_no' => $validated['petrol_card_no'],
-//             'batch_no' => $validated['batch_no'],
-//             'added_by' => auth()->id(),
-//         ]);
+    //         // Create a new card
+    //         $card = AddCard::create([
+    //             'petrol_card_machine_no' => $validated['petrol_card_machine_no'],
+    //             'petrol_card_no' => $validated['petrol_card_no'],
+    //             'batch_no' => $validated['batch_no'],
+    //             'added_by' => auth()->id(),
+    //         ]);
 
-//         // Create a bank deposit add card entry
-//         $bankDepositAddCard = BankDepositAddCard::create([
-//             'add_bank_deposit_id' => $validated['add_bank_deposit_id'],
-//             'add_card_id' => $card->id,
-//             'tid_no' => $validated['tid_no'],
-//             'narration' => $validated['narration'],
-//         ]);
+    //         // Create a bank deposit add card entry
+    //         $bankDepositAddCard = BankDepositAddCard::create([
+    //             'add_bank_deposit_id' => $validated['add_bank_deposit_id'],
+    //             'add_card_id' => $card->id,
+    //             'tid_no' => $validated['tid_no'],
+    //             'narration' => $validated['narration'],
+    //         ]);
 
-//         DB::commit();
+    //         DB::commit();
 
-//         return response()->json([
-//             'card' => $card,
-//             'bank_deposit_add_card' => $bankDepositAddCard,
-//         ], 201);
+    //         return response()->json([
+    //             'card' => $card,
+    //             'bank_deposit_add_card' => $bankDepositAddCard,
+    //         ], 201);
 
-//     } catch (\Illuminate\Validation\ValidationException $e) {
-//         return response()->json([
-//             'message' => 'Validation Error',
-//             'errors' => $e->errors(),
-//         ], 422);
+    //     } catch (\Illuminate\Validation\ValidationException $e) {
+    //         return response()->json([
+    //             'message' => 'Validation Error',
+    //             'errors' => $e->errors(),
+    //         ], 422);
 
-//     } catch (\Exception $e) {
-//         DB::rollBack();
-//         return response()->json([
-//             'message' => 'Failed to save data',
-//             'error' => $e->getMessage(),
-//         ], 500);
-//     }
-// }
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         return response()->json([
+    //             'message' => 'Failed to save data',
+    //             'error' => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
 
 
 
@@ -170,64 +168,62 @@ class AddCardController extends Controller
     // }
 
     public function update(Request $request, $id)
-{
-    try {
-        $validated = $request->validate([
-            'petrol_card_machine_no' => 'required|string|max:255',
-            'petrol_card_no' => 'required|string|max:255,' . $id,
-            'batch_no' => 'required|string',
-            'add_bank_deposit_id' => 'required|exists:add_bank_deposits,id',
-            'tid_no' => 'required|array',
-            'tid_no.*' => 'required|integer',
-            'narration' => 'required|string|max:255',
-        ]);
-
-        DB::beginTransaction();
-
-        // Find the card
-        $card = AddCard::findOrFail($id);
-        $card->update([
-            'petrol_card_machine_no' => $validated['petrol_card_machine_no'],
-            'petrol_card_no' => $validated['petrol_card_no'],
-            'batch_no' => $validated['batch_no'],
-        ]);
-
-        // Update each TID number
-        // First, delete existing bank deposit add cards
-        BankDepositAddCard::where('add_card_id', $id)->delete();
-
-        // Add new bank deposit add cards
-        $bankDepositAddCards = [];
-        foreach ($validated['tid_no'] as $tid_no) {
-            $bankDepositAddCards[] = BankDepositAddCard::create([
-                'add_bank_deposit_id' => $validated['add_bank_deposit_id'],
-                'add_card_id' => $card->id,
-                'tid_no' => $tid_no,
-                'narration' => $validated['narration'],
+    {
+        try {
+            $validated = $request->validate([
+                'petrol_card_machine_no' => 'required|string|max:255',
+                'petrol_card_no' => 'required|string|max:255,' . $id,
+                'batch_no' => 'required|string',
+                'add_bank_deposit_id' => 'required|exists:add_bank_deposits,id',
+                'tid_no' => 'required|array',
+                'tid_no.*' => 'required|integer',
+                'narration' => 'required|string|max:255',
             ]);
+
+            DB::beginTransaction();
+
+            // Find the card
+            $card = AddCard::findOrFail($id);
+            $card->update([
+                'petrol_card_machine_no' => $validated['petrol_card_machine_no'],
+                'petrol_card_no' => $validated['petrol_card_no'],
+                'batch_no' => $validated['batch_no'],
+            ]);
+
+            // Update each TID number
+            // First, delete existing bank deposit add cards
+            BankDepositAddCard::where('add_card_id', $id)->delete();
+
+            // Add new bank deposit add cards
+            $bankDepositAddCards = [];
+            foreach ($validated['tid_no'] as $tid_no) {
+                $bankDepositAddCards[] = BankDepositAddCard::create([
+                    'add_bank_deposit_id' => $validated['add_bank_deposit_id'],
+                    'add_card_id' => $card->id,
+                    'tid_no' => $tid_no,
+                    'narration' => $validated['narration'],
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'card' => $card,
+                'bank_deposit_add_cards' => $bankDepositAddCards,
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation Error',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Failed to save data',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        DB::commit();
-
-        return response()->json([
-            'card' => $card,
-            'bank_deposit_add_cards' => $bankDepositAddCards,
-        ], 200);
-
-    } catch (\Illuminate\Validation\ValidationException $e) {
-        return response()->json([
-            'message' => 'Validation Error',
-            'errors' => $e->errors(),
-        ], 422);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return response()->json([
-            'message' => 'Failed to save data',
-            'error' => $e->getMessage(),
-        ], 500);
     }
-}
 
     // public function update(Request $request, $id)
     // {

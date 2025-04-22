@@ -25,7 +25,7 @@ class OilInvoiceController extends Controller
             ->groupBy('oil_product_id');
 
         if ($invoices->isEmpty()) {
-            return response()->json(['message' => 'No data found for this date'], 404);
+            // return response()->json(['message' => 'No data found for this date'], 404);
         }
 
         $formattedInvoices = [];
@@ -263,6 +263,7 @@ class OilInvoiceController extends Controller
                 't_stk_amt' => $invoiceData['t_stk_amt'] ?? null,
                 'sgst_rate' => $invoiceData['sgst_rate']  ?? null,
                 'cgst_rate' => $invoiceData['cgst_rate']  ?? null,
+                'date' => $invoiceData['date'] ?? null, // 👈 Save the date here
             ]);
         }
 

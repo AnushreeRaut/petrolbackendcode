@@ -20,11 +20,26 @@ class HandLoanController extends Controller
     //     ]);
     // }
     // use Carbon\Carbon;
+// old
+    // public function index()
+    // {
+    //     $handLoans = HandLoan::with('client')
+    //         ->whereDate('created_at', Carbon::today())
+    //         ->get();
 
-    public function index()
+    //     return response()->json([
+    //         'message' => 'Hand loans retrieved successfully.',
+    //         'data' => $handLoans
+    //     ]);
+    // }
+    public function index(Request $request)
     {
+        $queryDate = $request->input('date');
+
         $handLoans = HandLoan::with('client')
-            ->whereDate('created_at', Carbon::today())
+            ->when($queryDate, function ($query, $queryDate) {
+                $query->whereDate('date', Carbon::parse($queryDate));
+            })
             ->get();
 
         return response()->json([
@@ -33,10 +48,27 @@ class HandLoanController extends Controller
         ]);
     }
 
-
     /**
      * Store a newly created resource in storage.
      */
+    // public function store(Request $request)
+    // {
+    //     $validated = $request->validate([
+    //         'client_id' => 'required|exists:clients,id',
+    //         'voucher_type' => 'required|string|max:255',
+    //         'amount' => 'required|numeric',
+    //         'narration' => 'nullable|string|max:255',
+    //         'amount_in_words' => 'required|string',
+    //     ]);
+
+    //     $validated['added_by'] = auth()->id(); // Assuming authenticated user
+    //     $handLoan = HandLoan::create($validated);
+
+    //     return response()->json([
+    //         'message' => 'Hand loan created successfully.',
+    //         'data' => $handLoan
+    //     ], 201);
+    // }
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -45,9 +77,11 @@ class HandLoanController extends Controller
             'amount' => 'required|numeric',
             'narration' => 'nullable|string|max:255',
             'amount_in_words' => 'required|string',
+            'date' => 'required|date', // ✅ Include this
         ]);
 
-        $validated['added_by'] = auth()->id(); // Assuming authenticated user
+        $validated['added_by'] = auth()->id();
+
         $handLoan = HandLoan::create($validated);
 
         return response()->json([

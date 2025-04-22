@@ -22,6 +22,7 @@ class CreditClient extends Model
         'vehicle_no',
         'added_by',
         'updated_by',
+        'date',
     ];
 
      // Define the relationship with ClientCredit (belongsTo)

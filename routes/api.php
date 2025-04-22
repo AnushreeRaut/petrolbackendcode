@@ -92,6 +92,10 @@ Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/update-password', [AuthController::class, 'updatePassword']);
 
 Route::middleware('auth:sanctum')->group(function () {
+
+    // NEWAPIS
+
+
     Route::apiResource('roles', RoleController::class);
     Route::apiResource('users', UserController::class);
     Route::put('/tanks/{id}/opening-stock', [TankController::class, 'updateOpeningStock']);
@@ -110,7 +114,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/machines/details/nozzels', [MachineGroupingController::class, 'getAllMachineDetails']);
 
-    Route::put('/nozzles/{id}', [MachineGroupingController::class, 'update']);
+    Route::put('/nozzles/openingreading/{id}', [MachineGroupingController::class, 'update']);
 
 
     Route::apiResource('machineswisegrouping', MachineWiseGroupingController::class);
@@ -253,7 +257,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route::get('/variations', [VariationController::class, 'getVariationData']);
     // Route::get('/get-variations', [VariationController::class, 'getVariations']);
 
-    Route::get('/variation-data', [VariationController::class, 'fetchVariationData']);
+    Route::post('/variation-data', [VariationController::class, 'fetchVariationData']);
+    // Route::post('/variations/get-by-date', [VariationController::class, 'getVariationsByDate']);
+    Route::post('/variations/get-by-date', [VariationController::class, 'getByDate']);
 
     Route::apiResource('bank_deposit_cards', BankDepositAddCardController::class);
 
@@ -317,6 +323,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/report-data-creditclient', [ReportController::class, 'getcreditclient']);
     Route::get('/credit_clients_display', [ReportController::class, 'getcreditclientsum']);
+    Route::get('/credit_clients_display_data', [ReportController::class, 'getCreditClientSumdata']);
     Route::get('/todays-invoice-summary', [ReportController::class, 'todaysInvoiceSummary']);
     // /todays-wallet-payments
     Route::get('/todays-wallet-payments', [ReportController::class, 'getTodaysWalletPayments']);

@@ -67,6 +67,36 @@ class ReportController extends Controller
         ]);
     }
 
+    public function getCreditClientSumdata(Request $request)
+    {
+        // Get the selected date from the query parameter
+        $selectedDate = $request->query('date');
+
+        if (!$selectedDate) {
+            return response()->json(['error' => 'Missing date'], 400);
+        }
+
+        // Sum of all credit amounts before the selected date
+        $opCredit = CreditClient::whereDate('date', '<', $selectedDate)->sum('amount');
+
+        // Sum of all credit amounts on the selected date
+        $onDateCredit = CreditClient::whereDate('date', $selectedDate)->sum('amount');
+
+        // Total credit (Op. Credit + Today's Credit)
+        $totalCredit = $opCredit + $onDateCredit;
+
+        // Fetch credit clients for the selected date
+        $creditClients = CreditClient::with(['clientCredit', 'tank', 'vehicle'])
+            ->whereDate('date', $selectedDate)  // Use the 'date' column
+            ->get();
+
+        return response()->json([
+            'credit_clients' => $creditClients,
+            'op_credit' => $opCredit,
+            'on_date_credit' => $onDateCredit,
+            'total_credit' => $totalCredit,
+        ]);
+    }
 
     public function getcreditclientsum()
     {

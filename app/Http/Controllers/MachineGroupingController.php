@@ -9,6 +9,21 @@ use Illuminate\Http\Request;
 class MachineGroupingController extends Controller
 {
 
+    // public function update(Request $request, $id)
+    // {
+    //     $request->validate([
+    //         'opening_reading' => 'required|numeric',
+    //     ]);
+
+    //     $nozzle = Nozzle::findOrFail($id);
+    //     $nozzle->update(['opening_reading' => $request->opening_reading]);
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Opening reading updated successfully.',
+    //         'nozzle' => $nozzle,
+    //     ]);
+    // }
     public function update(Request $request, $id)
     {
         $request->validate([

@@ -55,44 +55,87 @@ class CreditClientController extends Controller
     }
 
     public function getRateByTank(Request $request)
-    {
-        $tankId = $request->input('tank_id');
+{
+    $tankId = $request->input('tank_id');
+    $selectedDate = $request->input('date'); // Accept selected date
 
-        if (!$tankId) {
-            return response()->json(['error' => 'Tank ID is required'], 400);
-        }
-
-        // Fetch the tank details
-        $tank = Tank::find($tankId);
-
-        if (!$tank) {
-            return response()->json(['error' => 'Tank not found'], 404);
-        }
-
-        // Get today's date
-        $today = Carbon::now()->toDateString(); // Ensure timezone consistency
-
-        // Fetch the rate for today's date
-        $dayStart = DayStart::whereDate('date', $today)->first();
-
-        if (!$dayStart) {
-            return response()->json(['error' => 'Rate for today not found'], 404);
-        }
-
-        // Determine the rate field based on the tank's product
-        $rateField = match (strtolower($tank->product)) {
-            'ms' => 'ms_rate_day',
-            'ms(speed)' => 'speed_rate_day',
-            'hsd' => 'hsd_rate_day',
-            default => null,
-        };
-
-        if (!$rateField || !isset($dayStart->$rateField)) {
-            return response()->json(['error' => 'Rate not found for the selected product'], 404);
-        }
-
-        return response()->json(['rate' => $dayStart->$rateField]);
+    if (!$tankId) {
+        return response()->json(['error' => 'Tank ID is required'], 400);
     }
+
+    if (!$selectedDate) {
+        return response()->json(['error' => 'Date is required'], 400);
+    }
+
+    $tank = Tank::find($tankId);
+    if (!$tank) {
+        return response()->json(['error' => 'Tank not found'], 404);
+    }
+
+    // Format the selected date
+    $formattedDate = Carbon::parse($selectedDate)->toDateString();
+
+    // Fetch the day start rate by selected date
+    $dayStart = DayStart::whereDate('date', $formattedDate)->first();
+
+    if (!$dayStart) {
+        return response()->json(['error' => 'Rate for selected date not found'], 404);
+    }
+
+    // Determine the rate field
+    $rateField = match (strtolower($tank->product)) {
+        'ms' => 'ms_rate_day',
+        'ms(speed)' => 'speed_rate_day',
+        'hsd' => 'hsd_rate_day',
+        default => null,
+    };
+
+    if (!$rateField || !isset($dayStart->$rateField)) {
+        return response()->json(['error' => 'Rate not found for the selected product'], 404);
+    }
+
+    return response()->json(['rate' => $dayStart->$rateField]);
+}
+
+    // public function getRateByTank(Request $request)
+    // {
+    //     $tankId = $request->input('tank_id');
+
+    //     if (!$tankId) {
+    //         return response()->json(['error' => 'Tank ID is required'], 400);
+    //     }
+
+    //     // Fetch the tank details
+    //     $tank = Tank::find($tankId);
+
+    //     if (!$tank) {
+    //         return response()->json(['error' => 'Tank not found'], 404);
+    //     }
+
+    //     // Get today's date
+    //     $today = Carbon::now()->toDateString(); // Ensure timezone consistency
+
+    //     // Fetch the rate for today's date
+    //     $dayStart = DayStart::whereDate('date', $today)->first();
+
+    //     if (!$dayStart) {
+    //         return response()->json(['error' => 'Rate for today not found'], 404);
+    //     }
+
+    //     // Determine the rate field based on the tank's product
+    //     $rateField = match (strtolower($tank->product)) {
+    //         'ms' => 'ms_rate_day',
+    //         'ms(speed)' => 'speed_rate_day',
+    //         'hsd' => 'hsd_rate_day',
+    //         default => null,
+    //     };
+
+    //     if (!$rateField || !isset($dayStart->$rateField)) {
+    //         return response()->json(['error' => 'Rate not found for the selected product'], 404);
+    //     }
+
+    //     return response()->json(['rate' => $dayStart->$rateField]);
+    // }
 
     // public function getRateByTank(Request $request)
     // {
@@ -280,8 +323,7 @@ class CreditClientController extends Controller
     //         return response()->json(['error' => $e->getMessage()], 500);
     //     }
     // }
-
-    public function store(Request $request)
+public function store(Request $request)
 {
     try {
         // Decode JSON request if needed
@@ -300,8 +342,9 @@ class CreditClientController extends Controller
             'rate' => 'required|numeric',
             'quantity_in_liter' => 'required|numeric',
             'amt_wrds' => 'required|string',
-            'vehicle_no' => 'nullable|string', // ✅ Added validation for vehicle_no
+            'vehicle_no' => 'nullable|string',
             'vehicle_no_id' => 'nullable|integer',
+            'date' => 'required|date', // Add date validation
         ]);
 
         if ($validatedData->fails()) {
@@ -323,8 +366,9 @@ class CreditClientController extends Controller
             'amt_wrds' => $data['amt_wrds'],
             'vehicle_no' => $vehicle_no,
             'vehicle_no_id' => $vehicle_no_id,
-            'added_by' => auth()->id(), // ✅ Fix: Include added_by at creation
-            'updated_by' => auth()->id(), // ✅ Fix: Include updated_by at creation
+            'date' => $data['date'], // Store the date
+            'added_by' => auth()->id(),
+            'updated_by' => auth()->id(),
         ]);
 
         return response()->json([
@@ -335,6 +379,61 @@ class CreditClientController extends Controller
         return response()->json(['error' => $e->getMessage()], 500);
     }
 }
+
+//     public function store(Request $request)
+// {
+//     try {
+//         // Decode JSON request if needed
+//         $data = json_decode($request->getContent(), true); // Convert JSON to array
+
+//         if (!$data) {
+//             return response()->json(['error' => 'Invalid JSON data'], 400);
+//         }
+
+//         // Validate required fields
+//         $validatedData = Validator::make($data, [
+//             'add_client_credit_id' => 'required|integer',
+//             'tank_id' => 'required|integer',
+//             'bill_no' => 'required|string',
+//             'amount' => 'required|numeric',
+//             'rate' => 'required|numeric',
+//             'quantity_in_liter' => 'required|numeric',
+//             'amt_wrds' => 'required|string',
+//             'vehicle_no' => 'nullable|string', // ✅ Added validation for vehicle_no
+//             'vehicle_no_id' => 'nullable|integer',
+//         ]);
+
+//         if ($validatedData->fails()) {
+//             return response()->json(['error' => $validatedData->errors()], 422);
+//         }
+
+//         // Ensure `vehicle_no` and `vehicle_no_id` are stored as NULL if empty
+//         $vehicle_no = !empty($data['vehicle_no']) ? $data['vehicle_no'] : null;
+//         $vehicle_no_id = !empty($data['vehicle_no_id']) ? $data['vehicle_no_id'] : null;
+
+//         // Store in database with `added_by`
+//         $creditClient = CreditClient::create([
+//             'add_client_credit_id' => $data['add_client_credit_id'],
+//             'tank_id' => $data['tank_id'],
+//             'bill_no' => $data['bill_no'],
+//             'amount' => $data['amount'],
+//             'rate' => $data['rate'],
+//             'quantity_in_liter' => $data['quantity_in_liter'],
+//             'amt_wrds' => $data['amt_wrds'],
+//             'vehicle_no' => $vehicle_no,
+//             'vehicle_no_id' => $vehicle_no_id,
+//             'added_by' => auth()->id(), // ✅ Fix: Include added_by at creation
+//             'updated_by' => auth()->id(), // ✅ Fix: Include updated_by at creation
+//         ]);
+
+//         return response()->json([
+//             'message' => 'Data saved successfully',
+//             'data' => $creditClient
+//         ], 201);
+//     } catch (\Exception $e) {
+//         return response()->json(['error' => $e->getMessage()], 500);
+//     }
+// }
 
     public function edit(CreditClient $creditClient)
     {

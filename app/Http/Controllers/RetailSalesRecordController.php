@@ -72,7 +72,7 @@ class RetailSalesRecordController extends Controller
         })
         ->with([
             'oilInvoices' => function ($query) use ($today) {
-                $query->whereDate('created_at', $today);
+                // $query->whereDate('created_at', $today);
             },
             'oilInvoices.godowns' => function ($query) {
                 $query->select('id', 'oil_invoices_id', 'oil_product_id', 'outward_retail');

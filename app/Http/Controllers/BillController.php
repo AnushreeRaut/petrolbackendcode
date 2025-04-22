@@ -68,6 +68,26 @@ class BillController extends Controller
     //     $bill = Bill::create($request->all());
     //     return response()->json($bill, 201);
     // }
+    // public function store(Request $request)
+    // {
+    //     $request->validate([
+    //         'credit_client_ids' => 'required|array',
+    //         'bill_no' => 'required|string',
+    //         'date' => 'required|date',
+    //         'billing_date' => 'required|date',
+    //     ]);
+
+    //     foreach ($request->credit_client_ids as $creditClientId) {
+    //         Bill::create([
+    //             'credit_client_id' => $creditClientId,
+    //             'bill_no' => $request->bill_no,
+    //             'date' => $request->date,
+    //             'billing_date' => $request->billing_date,
+    //         ]);
+    //     }
+
+    //     return response()->json(['message' => 'Bills generated successfully'], 201);
+    // }
     public function store(Request $request)
     {
         $request->validate([
@@ -75,6 +95,8 @@ class BillController extends Controller
             'bill_no' => 'required|string',
             'date' => 'required|date',
             'billing_date' => 'required|date',
+            // Optional: validate date_store if needed
+            'date_store' => 'nullable|date',
         ]);
 
         foreach ($request->credit_client_ids as $creditClientId) {
@@ -83,6 +105,7 @@ class BillController extends Controller
                 'bill_no' => $request->bill_no,
                 'date' => $request->date,
                 'billing_date' => $request->billing_date,
+                'date_store' => $request->date_store ?? $request->date, // fallback to date if needed
             ]);
         }
 

@@ -21,7 +21,8 @@ class Variation extends Model
         'variation',
         't_variation',
         'added_by',
-        'updated_by'
+        'updated_by',
+        'date',
     ];
 
     public function fuelSalesDetail()

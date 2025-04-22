@@ -19,6 +19,7 @@ class HandLoan extends Model
         'amount_in_words',
         'added_by',
         'updated_by',
+        'date',
     ];
 
     /**

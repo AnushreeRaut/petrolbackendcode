@@ -204,9 +204,13 @@ class FuelSalesDetailController extends Controller
 
         return response()->json([
             'MS' => $rates->ms_rate_day,
-            'MS(speed)' => $rates->speed_rate_day,
+            'ms' => $rates->ms_rate_day,
+            'Speed' => $rates->speed_rate_day,
+            'SPEED' => $rates->speed_rate_day,
             'HSD' => $rates->hsd_rate_day,
+            'hsd' => $rates->hsd_rate_day,
         ]);
+
     }
 
 

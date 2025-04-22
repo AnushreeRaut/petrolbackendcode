@@ -33,6 +33,7 @@ class OilInvoice extends Model
         't_stk_amt ',
         'cgst_rate',
         'sgst_rate',
+        'date',
     ];
 
     // Relationship with OilProduct

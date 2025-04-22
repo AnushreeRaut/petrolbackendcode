@@ -15,6 +15,7 @@ class Godown extends Model
         't_opening_stk',
         'outward_retail',
         'bal_stk',
+        'date',
     ];
 
 

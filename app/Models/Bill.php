@@ -15,6 +15,7 @@ class Bill extends Model
         'bill_no',
         'date',
         'billing_date',
+        'date_store',
     ];
 
     public function clientCredit()
