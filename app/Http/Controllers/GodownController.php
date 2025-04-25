@@ -33,21 +33,39 @@ class GodownController extends Controller
     }
 
 
-    public function getTodaysStock()
+    public function getTodaysStock(Request $request)
     {
-        $today = now()->toDateString();
+        // $today = now()->toDateString();
 
-        $oilProducts = OilProduct::with(['oilInvoices' => function ($query) use ($today) {
-            $query->whereDate('created_at', $today);
+        // $oilProducts = OilProduct::with(['oilInvoices' => function ($query) use ($today) {
+        //     $query->whereDate('created_at', $today);
+        // }])
+        //     ->whereHas('oilInvoices', function ($query) use ($today) {
+        //         $query->whereDate('created_at', $today);
+        //     })
+        //     ->with(['godownStock' => function ($query) { // Fetch existing stock data
+        //         $query->select('oil_product_id', 'oil_invoices_id', 'outward_retail', 'bal_stk', 'opening_stk');
+        //     }])
+        //     ->get();
+
+        // return response()->json($oilProducts);
+        $selectedDate = $request->input('date', now()->toDateString()); // Default to today's date if none provided
+
+        Log::info('Received date:', ['date' => $selectedDate]);
+
+        // Filter stock data by the selected date
+        $oilProducts = OilProduct::with(['oilInvoices' => function ($query) use ($selectedDate) {
+            $query->whereDate('date', $selectedDate); // Use 'date' column instead of 'created_at'
         }])
-            ->whereHas('oilInvoices', function ($query) use ($today) {
-                $query->whereDate('created_at', $today);
+            ->whereHas('oilInvoices', function ($query) use ($selectedDate) {
+                $query->whereDate('date', $selectedDate); // Filter by 'date' column
             })
-            ->with(['godownStock' => function ($query) { // Fetch existing stock data
+            ->with(['godownStock' => function ($query) {
                 $query->select('oil_product_id', 'oil_invoices_id', 'outward_retail', 'bal_stk', 'opening_stk');
             }])
             ->get();
 
+        Log::info('Stock data being returned:', ['data' => $oilProducts]);
         return response()->json($oilProducts);
     }
 
