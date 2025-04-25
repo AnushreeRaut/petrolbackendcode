@@ -296,8 +296,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // api report
     Route::get('/bills/report', [BillReportController::class, 'index']);
     Route::get('/bills/report/client', [BillReportController::class, 'clientbill']);
+    Route::get('getOilProductsWithInvoices', [RetailSalesRecordController::class, 'getOilProductsWithInvoices']);
 
-    Route::get('/getOilProductsWithInvoices', [RetailSalesRecordController::class, 'getOilProductsWithInvoices']);
+    // Route::get('/getOilProductsWithInvoices', [RetailSalesRecordController::class, 'getOilProductsWithInvoices']);
     Route::post('/retail-sales-records', [RetailSalesRecordController::class, 'store']);
 
     Route::get('/fuel-sales/get', [FuelSalesDetailController::class, 'getFuelSalesData']);

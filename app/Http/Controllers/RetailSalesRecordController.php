@@ -9,87 +9,27 @@ use Illuminate\Http\Request;
 
 class RetailSalesRecordController extends Controller
 {
-    // public function getOilProductsWithInvoices()
-    // {
-    //     $oilProducts = OilProduct::whereHas('oilInvoices', function ($query) {
-    //         $query->whereDate('created_at', now()->toDateString());
-    //     })->get();
+    public function getOilProductsWithInvoices(Request $request)
+    {
+        // Get the selected date from the query parameter
+        $selectedDate = $request->query('selectedDate');
 
-    //     return response()->json($oilProducts);
-    // }
-    // public function getOilProductsWithInvoices()
-    // {
-    //     $oilProducts = OilProduct::whereHas('oilInvoices', function ($query) {
-    //         $query->whereDate('created_at', now()->toDateString());
-    //     })->get();
+        // Validate the date
+        if (!$selectedDate) {
+            return response()->json(['error' => 'Date is required'], 400);
+        }
 
-    //     $oilProducts = OilProduct::select('oil_products.*', 'godowns.outward_retail')
-    //         ->leftJoin('godowns', 'oil_products.id', '=', 'godowns.oil_product_id')
-    //         ->whereHas('oilInvoices', function ($query) {
-    //             $query->whereDate('created_at', now()->toDateString());
-    //         })
-    //         ->get();
+        // Fetch oil products along with their godown and invoice details based on the selected date
+        $oilProducts = OilProduct::with(['godownStock' => function ($query) use ($selectedDate) {
+            // Filter godowns by date
+            $query->where('date', $selectedDate);
+        }, 'oilInvoices' => function ($query) use ($selectedDate) {
+            // Optionally, you can also filter invoices by the selected date if needed
+            $query->whereDate('created_at', '=', $selectedDate);
+        }])->get();
 
-    //     return response()->json($oilProducts);
-    // }
-
-    // public function getOilProductsWithInvoices()
-    // {
-    //     $oilProducts = OilProduct::select('oil_products.*', 'godowns.outward_retail')
-    //         ->leftJoin('godowns', 'oil_products.id', '=', 'godowns.oil_product_id')
-    //         ->whereHas('oilInvoices', function ($query) {
-    //             $query->whereDate('oil_invoices.created_at', now()->toDateString());
-    //         })
-    //         ->get();
-
-    //     return response()->json($oilProducts);
-    // }
-    // public function getOilProductsWithInvoices()
-    // {
-    //     $today = Carbon::today()->toDateString(); // Get today's date
-
-    //     $oilProducts = OilProduct::whereHas('oilInvoices', function ($query) use ($today) {
-    //             $query->whereDate('created_at', $today);
-    //         })
-    //         ->with([
-    //             'oilInvoices' => function ($query) use ($today) {
-    //                 $query->whereDate('created_at', $today);
-    //             },
-    //             'oilInvoices.godowns' => function ($query) {
-    //                 $query->select('id', 'oil_invoices_id', 'oil_product_id', 'outward_retail');
-    //             }
-    //         ])
-    //         ->get();
-
-    //     return response()->json($oilProducts);
-    // }
-    public function getOilProductsWithInvoices()
-{
-    $today = Carbon::today()->toDateString(); // Get today's date
-
-    $oilProducts = OilProduct::whereHas('oilInvoices', function ($query) use ($today) {
-            $query->whereDate('created_at', $today);
-        })
-        ->with([
-            'oilInvoices' => function ($query) use ($today) {
-                // $query->whereDate('created_at', $today);
-            },
-            'oilInvoices.godowns' => function ($query) {
-                $query->select('id', 'oil_invoices_id', 'oil_product_id', 'outward_retail');
-            }
-        ])
-        ->get();
-
-    // Add computed `inward_to_retail` field
-    $oilProducts->each(function ($product) {
-        $product->inward_to_retail = $product->oilInvoices->flatMap->godowns->sum('outward_retail');
-    });
-
-    return response()->json($oilProducts);
-}
-
-    // Store Retail Sales Records
-
+        return response()->json($oilProducts);
+    }
 
     public function store(Request $request)
     {
