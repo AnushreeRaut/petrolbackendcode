@@ -232,14 +232,75 @@ class DayStartController extends Controller
 
 
 
+    // public function getValidDates()
+    // {
+    //     // Fetch dates that exist in both tables
+    //     $validDates = DayStart::whereIn('date', DayEnd::pluck('date'))->pluck('date');
+
+    //     return response()->json($validDates);
+    // }
+
+    // public function getValidDates()
+    // {
+    //     $validDates = DB::table('day_start')
+    //         ->join('day_ends', 'day_start.date', '=', 'day_ends.date')
+    //         ->select('day_start.date')
+    //         ->orderBy('day_start.date')
+    //         ->get();
+
+    //     return response()->json($validDates);
+    // }
+    // public function getValidDates()
+    // {
+    //     // Fetch only dates where BOTH day_start and day_end exist
+    //     $completedDates = DB::table('day_start')
+    //         ->join('day_ends', 'day_start.date', '=', 'day_ends.date')
+    //         ->select('day_start.date')
+    //         ->orderBy('day_start.date')
+    //         ->get()
+    //         ->pluck('date')
+    //         ->toArray();
+
+    //     $validDates = [];
+
+    //     // Only allow selection of next day if previous day is completed
+    //     for ($i = 0; $i < count($completedDates); $i++) {
+    //         $validDates[] = $completedDates[$i];
+    //         if (isset($completedDates[$i + 1])) {
+    //             $expectedNextDate = date('Y-m-d', strtotime($completedDates[$i] . ' +1 day'));
+    //             if ($completedDates[$i + 1] !== $expectedNextDate) {
+    //                 break;
+    //             }
+    //         }
+    //     }
+
+    //     return response()->json($validDates);
+    // }
     public function getValidDates()
     {
-        // Fetch dates that exist in both tables
-        $validDates = DayStart::whereIn('date', DayEnd::pluck('date'))->pluck('date');
+        // Fetch only dates where BOTH day_start and day_end exist
+        $completedDates = DB::table('day_start')
+            ->join('day_ends', 'day_start.date', '=', 'day_ends.date')
+            ->select('day_start.date')
+            ->orderBy('day_start.date')
+            ->get()
+            ->pluck('date')
+            ->toArray();
 
-        return response()->json($validDates);
+        $selectableDates = $completedDates;
+
+        // If we have at least one completed date, add the next day
+        if (!empty($completedDates)) {
+            $latestCompletedDate = end($completedDates);
+            $nextDate = date('Y-m-d', strtotime($latestCompletedDate . ' +1 day'));
+            $selectableDates[] = $nextDate;
+        } else {
+            // If no dates are completed yet, make first day selectable
+            $selectableDates[] = "2025-01-01";
+        }
+
+        return response()->json($selectableDates);
     }
-
 
     public function getLatestDate()
     {

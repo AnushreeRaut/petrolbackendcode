@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Machine;
 use App\Models\Nozzle;
+use App\Models\Tank;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -388,12 +389,61 @@ class MachineController extends Controller
     /**
      * Update the nozzles associated with the machine.
      */
+    // private function updateNozzles(Request $request, Machine $machine)
+    // {
+    //     // Delete existing nozzles
+    //     $machine->nozzles()->delete();
+
+    //     // Add the new nozzles
+    //     $this->storeNozzles($request, $machine);
+    // }
     private function updateNozzles(Request $request, Machine $machine)
     {
-        // Delete existing nozzles
-        $machine->nozzles()->delete();
+        $existingNozzles = $machine->nozzles->keyBy('id');
+        $incomingNozzles = collect($request->nozzles);
 
-        // Add the new nozzles
-        $this->storeNozzles($request, $machine);
+        foreach ($incomingNozzles as $nozzleData) {
+            if (isset($nozzleData['id']) && $existingNozzles->has($nozzleData['id'])) {
+                // Update existing nozzle
+                $existingNozzles[$nozzleData['id']]->update([
+                    'nozzle_number' => $nozzleData['nozzle_number'],
+                    'type' => $nozzleData['type'],
+                    'tank_id' => $nozzleData['tank_id'],
+                    'nozzle_stamping_date' => $nozzleData['nozzle_stamping_date'],
+                    'nozzle_next_due_date' => $nozzleData['nozzle_next_due_date'],
+                    'side1' => $nozzleData['side1'],
+                    'side2' => $nozzleData['side2'],
+                ]);
+            } else {
+                // Create new nozzle
+                $machine->nozzles()->create([
+                    'nozzle_number' => $nozzleData['nozzle_number'],
+                    'type' => $nozzleData['type'],
+                    'tank_id' => $nozzleData['tank_id'],
+                    'nozzle_stamping_date' => $nozzleData['nozzle_stamping_date'],
+                    'nozzle_next_due_date' => $nozzleData['nozzle_next_due_date'],
+                    'side1' => $nozzleData['side1'],
+                    'side2' => $nozzleData['side2'],
+                ]);
+            }
+        }
+
+        // Delete nozzles that are no longer present
+        $incomingIds = $incomingNozzles->pluck('id')->filter()->all();
+        $machine->nozzles()->whereNotIn('id', $incomingIds)->delete();
     }
+    public function getMachineProductDetails()
+    {
+        $tanks = Tank::withCount('nozzles')->get();
+
+        $machines = Machine::where('is_active', true) // 👈 Only active machines
+            ->with(['tanks', 'nozzles.tank'])
+            ->get();
+
+        return response()->json([
+            'tanks' => $tanks,
+            'machines' => $machines,
+        ]);
+    }
+
 }

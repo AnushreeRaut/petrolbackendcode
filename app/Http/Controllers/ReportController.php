@@ -14,20 +14,21 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
 
 class ReportController extends Controller
 {
 
-    public function getReportData()
+    public function getReportData(Request $request)
     {
-        $today = Carbon::today(); // Get today's date
+        $date = $request->query('date', Carbon::today()); // 👈 Get selected date
 
         // Fetch latest day_start record for today
-        $dayStart = DayStart::whereDate('created_at', $today)->latest()->first();
+        $dayStart = DayStart::whereDate('date', $date)->latest()->first();
 
         // Fetch fuel sales details for today
         $fuelSales = FuelSalesDetail::with(['tank', 'tankFuelSale'])
-            ->whereDate('created_at', $today)->latest()->get()
+            ->whereDate('date', $date)->latest()->get()
             ->map(function ($sale) {
                 $sale->tank_fuel_sale = $sale->tank_fuel_sale ?? (object) []; // Ensures it's never null
                 return $sale;
@@ -39,12 +40,12 @@ class ReportController extends Controller
         ]);
     }
 
-    public function fetchVariationData()
+    public function fetchVariationData(Request $request)
     {
-        $today = Carbon::today();
+        $date = $request->query('date', Carbon::today()); // 👈 Get selected date
 
         $variations = Variation::with(['tank', 'petrolInvoiceFeeding'])
-            ->whereDate('created_at', $today)
+            ->whereDate('date', $date)
             ->get();
 
         Log::info("Fetched variations: ", $variations->toArray());
@@ -54,12 +55,12 @@ class ReportController extends Controller
         ]);
     }
 
-    public function getcreditclient()
+    public function getcreditclient(Request $request)
     {
-        $today = Carbon::today();
+        $date = $request->query('date', Carbon::today()); // 👈 Get selected date
 
         $creditClients = CreditClient::with(['clientCredit', 'tank','vehicle'])
-            ->whereDate('created_at', $today)
+            ->whereDate('date', $date)
             ->get();
 
         return response()->json([
@@ -98,22 +99,22 @@ class ReportController extends Controller
         ]);
     }
 
-    public function getcreditclientsum()
+    public function getcreditclientsum(Request $request)
     {
-        $today = Carbon::today();
+        $date = $request->query('date', Carbon::today()); // 👈 Get selected date
 
         // Sum of all credit amounts before today
-        $opCredit = CreditClient::whereDate('created_at', '<', $today)->sum('amount');
+        $opCredit = CreditClient::whereDate('date', '<', $date)->sum('amount');
 
         // Sum of all credit amounts for today
-        $onDateCredit = CreditClient::whereDate('created_at', $today)->sum('amount');
+        $onDateCredit = CreditClient::whereDate('date', $date)->sum('amount');
 
         // Total credit (Op. Credit + Today's Credit)
         $totalCredit = $opCredit + $onDateCredit;
 
         // Fetch only today's credit clients
         $creditClients = CreditClient::with(['clientCredit', 'tank', 'vehicle'])
-            ->whereDate('created_at', $today) // ✅ Fetch only today's records
+            ->whereDate('date', $date) // ✅ Fetch only today's records
             ->get();
 
         return response()->json([
@@ -124,15 +125,15 @@ class ReportController extends Controller
         ]);
     }
 
-    public function todaysInvoiceSummary()
+    public function todaysInvoiceSummary(Request $request)
     {
-        $today = Carbon::today();
+        $date = $request->query('date', Carbon::today()); // 👈 Get selected date
 
         $data = PetrolInvoiceFeeding::select(
                 'tank_id',
                 DB::raw('SUM(kl_qty) as total_kl_qty')
             )
-            ->whereDate('created_at', $today)
+            ->whereDate('date', $date)
             ->groupBy('tank_id')
             ->with('tank') // Assuming 'tank' relation exists
             ->get();
@@ -140,9 +141,10 @@ class ReportController extends Controller
         return response()->json($data);
     }
 
-    public function getTodaysWalletPayments()
+    public function getTodaysWalletPayments(Request $request)
 {
-    $todaysPayments = WalletPayment::with(['wallet'])->whereDate('created_at', Carbon::today())->get();
+    $date = $request->query('date', Carbon::today()); // 👈 Get selected date
+    $todaysPayments = WalletPayment::with(['wallet'])->whereDate('date', $date)->get();
     return response()->json($todaysPayments);
 }
 
@@ -150,9 +152,10 @@ class ReportController extends Controller
 //     $petrolCards = PetrolCard::with('addCard.bankDeposits')->whereDate('created_at', Carbon::today())->get();
 //     return response()->json(['petrol_cards' => $petrolCards]);
 // }
-public function perolcardreport() {
+public function perolcardreport(Request $request) {
+    $date = $request->query('date', Carbon::today()); // 👈 Get selected date
     $petrolCards = PetrolCard::with('addCard.bankDeposits')
-        ->whereDate('created_at', Carbon::today())
+        ->whereDate('date', $date)
         ->get()
         ->map(function ($card) {
             return [

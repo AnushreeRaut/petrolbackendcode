@@ -94,6 +94,7 @@ Route::post('/update-password', [AuthController::class, 'updatePassword']);
 Route::middleware('auth:sanctum')->group(function () {
 
     // NEWAPIS
+    Route::get('/machine-product-details', [MachineController::class, 'getMachineProductDetails']);
 
 
     Route::apiResource('roles', RoleController::class);
@@ -115,6 +116,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/machines/details/nozzels', [MachineGroupingController::class, 'getAllMachineDetails']);
 
     Route::put('/nozzles/openingreading/{id}', [MachineGroupingController::class, 'update']);
+    // Route::put('/nozzles/openingreading/update/{id}', [NozzleController::class, 'update']);
 
 
     Route::apiResource('machineswisegrouping', MachineWiseGroupingController::class);
@@ -160,6 +162,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/fuel-sales/update', [FuelSalesDetailController::class, 'update']);
     Route::get('/fuel-sales/rate', [FuelSalesDetailController::class, 'getRates']);
     Route::apiResource('variations', VariationController::class);
+    Route::post('/variations/store', [VariationController::class, 'store']);
+    Route::post('/variations', [VariationController::class, 'index']);
+    Route::post('/variations', [VariationController::class, 'getByDate']);
     Route::apiResource('index-invoices', IndexInvoiceController::class);
     Route::apiResource('oil-products', OilProductController::class);
     Route::put('/oil-products/{id}/update-status', [OilProductController::class, 'updateStatus']);
@@ -252,14 +257,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tanks/details/invoice/fetch', [DecantationController::class, 'getAllTanks']);
     Route::post('/decant/submit', [DecantationController::class, 'store']);
     Route::get('/decantations/view', [DecantationController::class, 'index']);
+    Route::put('/decantations/update/{id}', [DecantationController::class, 'update']);
+Route::delete('/decantations/delete/{id}', [DecantationController::class, 'destroy']);
     // Route::get('/tank-details/{id}', [InvoiceFeedingController::class, 'getTankDetails']);
 
     // Route::get('/variations', [VariationController::class, 'getVariationData']);
     // Route::get('/get-variations', [VariationController::class, 'getVariations']);
 
-    Route::post('/variation-data', [VariationController::class, 'fetchVariationData']);
+    Route::post('/variation-data/fetch/varation', [VariationController::class, 'fetchVariationData']);
     // Route::post('/variations/get-by-date', [VariationController::class, 'getVariationsByDate']);
     Route::post('/variations/get-by-date', [VariationController::class, 'getByDate']);
+
 
     Route::apiResource('bank_deposit_cards', BankDepositAddCardController::class);
 
@@ -275,11 +283,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route::get('checkoil', [CountController::class, 'checkoil']);
     Route::get('/check-today-loans', [CountController::class, 'checkTodayLoans']);
     Route::get('/checkfule', [CountController::class, 'checkfule']);
-    Route::get('checkoil', [CountController::class, 'checkoil']);
+    Route::get('/checkoil', [CountController::class, 'checkoil']);
     Route::get('/checkcards', [CountController::class, 'checkcards']);
     Route::get('/checkbankdeposits', [CountController::class, 'checkBankDeposits']);
     Route::get('/checkcredit', [CountController::class, 'checkCredit']);
-
+    Route::get('/expenses/day/fetch', [CountController::class, 'checkexp']);
+    Route::get('/checkdayend', [CountController::class, 'checkdayend']);
     Route::get('/vehicles', [VehicleController::class, 'index']);
 
     // Route::apiResource('oil-stock-products', StockOilProductController::class);

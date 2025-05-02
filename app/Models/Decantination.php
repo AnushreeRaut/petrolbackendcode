@@ -17,6 +17,7 @@ class Decantination extends Model
         'tank_2_speed',
         'tank_3_hsd',
         'total_kl',
+        'date',
         'added_by',
         'updated_by',
     ];

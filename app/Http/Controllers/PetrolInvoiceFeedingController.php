@@ -137,45 +137,65 @@ class PetrolInvoiceFeedingController extends Controller
 
 
 
-    // =====================================
-    public function getGroupedInvoicesdata()
-    {
-        // Fetch today's date
-        $today = now()->toDateString(); // Get current date in 'YYYY-MM-DD' format
+    // // =====================================
+    // public function getGroupedInvoicesdata()
+    // {
+    //     // Fetch today's date
+    //     $today = now()->toDateString(); // Get current date in 'YYYY-MM-DD' format
 
-        // Fetch data ordered by invoice number and filter for today's records
+    //     // Fetch data ordered by invoice number and filter for today's records
+    //     $invoices = DB::table('petrol_invoice_feeding')
+    //         ->join('tanks', 'petrol_invoice_feeding.tank_id', '=', 'tanks.id')
+    //         ->join('add_petrol_invoice', 'petrol_invoice_feeding.tank_id', '=', 'add_petrol_invoice.tank_id') // Join with add_petrol_invoice
+    //         ->select(
+    //             'petrol_invoice_feeding.id',
+    //             'petrol_invoice_feeding.invoice_no',
+    //             'petrol_invoice_feeding.kl_qty',
+    //             'petrol_invoice_feeding.rate',
+    //             'petrol_invoice_feeding.value',
+    //             'petrol_invoice_feeding.tax_amt',
+    //             'petrol_invoice_feeding.prod_amt',
+    //             'petrol_invoice_feeding.vat_lst_value',
+    //             'petrol_invoice_feeding.vat_lst',
+    //             'petrol_invoice_feeding.cess',
+    //             'petrol_invoice_feeding.tcs',
+    //             'petrol_invoice_feeding.total_amt',
+    //             'petrol_invoice_feeding.tds_percent',
+    //             'petrol_invoice_feeding.lfr_rate',
+    //             'petrol_invoice_feeding.cgst',
+    //             'petrol_invoice_feeding.sgst',
+    //             'petrol_invoice_feeding.tds_lfr',
+    //             'tanks.product',
+    //             'add_petrol_invoice.rate_per_unit', // Include rate_per_unit from add_petrol_invoice
+    //             'add_petrol_invoice.tax_amt_per_amt',
+    //             'add_petrol_invoice.cess_per_unit',
+    //             'add_petrol_invoice.tcs_per_unit',
+    //         )
+    //         ->whereDate('petrol_invoice_feeding.created_at', $today) // Filter only today's records
+    //         ->orderBy('petrol_invoice_feeding.created_at', 'asc')
+    //         ->get();
+
+    //     // Return the plain array
+    //     return response()->json([
+    //         'success' => true,
+    //         'data' => $invoices,
+    //     ]);
+    // }
+    public function getGroupedInvoicesdata(Request $request)
+    {
+        // Get the date from the request, or use today if not provided
+        $date = $request->query('date', now()->toDateString());
+
         $invoices = DB::table('petrol_invoice_feeding')
             ->join('tanks', 'petrol_invoice_feeding.tank_id', '=', 'tanks.id')
-            ->join('add_petrol_invoice', 'petrol_invoice_feeding.tank_id', '=', 'add_petrol_invoice.tank_id') // Join with add_petrol_invoice
+            ->join('add_petrol_invoice', 'petrol_invoice_feeding.tank_id', '=', 'add_petrol_invoice.tank_id')
             ->select(
-                'petrol_invoice_feeding.id',
-                'petrol_invoice_feeding.invoice_no',
-                'petrol_invoice_feeding.kl_qty',
-                'petrol_invoice_feeding.rate',
-                'petrol_invoice_feeding.value',
-                'petrol_invoice_feeding.tax_amt',
-                'petrol_invoice_feeding.prod_amt',
-                'petrol_invoice_feeding.vat_lst_value',
-                'petrol_invoice_feeding.vat_lst',
-                'petrol_invoice_feeding.cess',
-                'petrol_invoice_feeding.tcs',
-                'petrol_invoice_feeding.total_amt',
-                'petrol_invoice_feeding.tds_percent',
-                'petrol_invoice_feeding.lfr_rate',
-                'petrol_invoice_feeding.cgst',
-                'petrol_invoice_feeding.sgst',
-                'petrol_invoice_feeding.tds_lfr',
-                'tanks.product',
-                'add_petrol_invoice.rate_per_unit', // Include rate_per_unit from add_petrol_invoice
-                'add_petrol_invoice.tax_amt_per_amt',
-                'add_petrol_invoice.cess_per_unit',
-                'add_petrol_invoice.tcs_per_unit',
+                // ... your columns ...
             )
-            ->whereDate('petrol_invoice_feeding.created_at', $today) // Filter only today's records
-            ->orderBy('petrol_invoice_feeding.created_at', 'asc')
+            ->whereDate('petrol_invoice_feeding.date', $date) // Filter by the requested date
+            ->orderBy('petrol_invoice_feeding.date', 'asc')
             ->get();
 
-        // Return the plain array
         return response()->json([
             'success' => true,
             'data' => $invoices,

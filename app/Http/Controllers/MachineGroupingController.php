@@ -24,21 +24,24 @@ class MachineGroupingController extends Controller
     //         'nozzle' => $nozzle,
     //     ]);
     // }
+
     public function update(Request $request, $id)
-    {
-        $request->validate([
-            'opening_reading' => 'required|numeric',
-        ]);
+{
+    $request->validate([
+        'opening_reading' => 'required|numeric',
+    ]);
 
-        $nozzle = Nozzle::findOrFail($id);
-        $nozzle->update(['opening_reading' => $request->opening_reading]);
+    $nozzle = Nozzle::findOrFail($id);
+    $nozzle->opening_reading = (float) $request->opening_reading;
+    $nozzle->save();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Opening reading updated successfully.',
-            'nozzle' => $nozzle,
-        ]);
-    }
+    return response()->json([
+        'success' => true,
+        'message' => 'Opening reading updated successfully.',
+        'nozzle' => $nozzle,
+    ]);
+}
+
 
     // public function getAllMachineDetails()
     // {

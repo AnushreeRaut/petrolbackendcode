@@ -74,7 +74,7 @@ class HandLoanController extends Controller
         $validated = $request->validate([
             'client_id' => 'required|exists:clients,id',
             'voucher_type' => 'required|string|max:255',
-            'amount' => 'required|numeric',
+           'amount' => ['required', 'regex:/^\d+(\.\d{1,2})?$/'],
             'narration' => 'nullable|string|max:255',
             'amount_in_words' => 'required|string',
             'date' => 'required|date', // ✅ Include this
@@ -108,7 +108,7 @@ class HandLoanController extends Controller
         $request->validate([
             'client_id' => 'required|exists:clients,id',
             'voucher_type' => 'required|in:Debit-out,Credit-In',
-            'amount' => 'required|numeric|min:0',
+            'amount' => ['required', 'regex:/^\d+(\.\d{1,2})?$/','min:0'],
             'narration' => 'nullable|string',
         ]);
 

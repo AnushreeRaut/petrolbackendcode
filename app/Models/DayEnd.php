@@ -22,6 +22,7 @@ class DayEnd extends Model
         'add_bank_deposit_id',
         'short',
         't_short',
+        'date',
     ];
 
     public function bankDeposit()

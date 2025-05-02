@@ -13,8 +13,6 @@ use Illuminate\Support\Str; // Import Str helper
 
 class FuelSalesDetailController extends Controller
 {
-
-
     public function store(Request $request)
     {
         $validatedData = $request->validate([
@@ -33,54 +31,157 @@ class FuelSalesDetailController extends Controller
             'tankFuelSales.*.total_a_sales' => 'required|numeric',
             'tankFuelSales.*.total_testing' => 'required|numeric',
             'tankFuelSales.*.total_amount' => 'required|numeric',
-            'date' => 'required|date', // Validate the date field
+            'date' => 'required|date',
         ]);
 
-        $date = $validatedData['date']; // Get the date from the request
+        $date = $validatedData['date'];
 
         try {
             DB::transaction(function () use ($validatedData, $date) {
-                // Insert fuel sales details
                 foreach ($validatedData['fuelSalesDetails'] as $detail) {
-                    DB::table('fuel_sales_details')->insert([
-                        'tank_id' => $detail['tank_id'],
-                        'machine_id' => $detail['machine_id'],
-                        'nozzle_name' => $detail['nozzle_name'],
-                        'opening' => $detail['opening'],
-                        'closing' => $detail['closing'],
-                        'sale' => $detail['sale'],
-                        'testing' => $detail['testing'],
-                        'a_sale' => $detail['a_sale'],
-                        'date' => $date, // Add the date field here
-                        'added_by' => auth()->id(),
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
+                    $existing = DB::table('fuel_sales_details')
+                        ->where('tank_id', $detail['tank_id'])
+                        ->where('nozzle_name', $detail['nozzle_name'])
+                        ->whereDate('date', $date)
+                        ->first();
+
+                    if ($existing) {
+                        DB::table('fuel_sales_details')
+                            ->where('id', $existing->id)
+                            ->update([
+                                'machine_id' => $detail['machine_id'],
+                                'opening' => $detail['opening'],
+                                'closing' => $detail['closing'],
+                                'sale' => $detail['sale'],
+                                'testing' => $detail['testing'],
+                                'a_sale' => $detail['a_sale'],
+                                'updated_at' => now(),
+                            ]);
+                    } else {
+                        DB::table('fuel_sales_details')->insert([
+                            'tank_id' => $detail['tank_id'],
+                            'machine_id' => $detail['machine_id'],
+                            'nozzle_name' => $detail['nozzle_name'],
+                            'opening' => $detail['opening'],
+                            'closing' => $detail['closing'],
+                            'sale' => $detail['sale'],
+                            'testing' => $detail['testing'],
+                            'a_sale' => $detail['a_sale'],
+                            'date' => $date,
+                            'added_by' => auth()->id(),
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
                 }
 
-                // Insert tank fuel sales
                 foreach ($validatedData['tankFuelSales'] as $sale) {
-                    DB::table('tank_fule_sales')->insert([
-                        'tank_id' => $sale['tank_id'],
-                        'rate' => $sale['rate'],
-                        'total_sales' => $sale['total_sales'],
-                        'total_a_sales' => $sale['total_a_sales'],
-                        'total_testing' => $sale['total_testing'],
-                        'total_amount' => $sale['total_amount'],
-                        'date' => $date, // Add the date field here
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
+                    $existingTank = DB::table('tank_fule_sales')
+                        ->where('tank_id', $sale['tank_id'])
+                        ->whereDate('date', $date)
+                        ->first();
+
+                    if ($existingTank) {
+                        DB::table('tank_fule_sales')
+                            ->where('id', $existingTank->id)
+                            ->update([
+                                'rate' => $sale['rate'],
+                                'total_sales' => $sale['total_sales'],
+                                'total_a_sales' => $sale['total_a_sales'],
+                                'total_testing' => $sale['total_testing'],
+                                'total_amount' => $sale['total_amount'],
+                                'updated_at' => now(),
+                            ]);
+                    } else {
+                        DB::table('tank_fule_sales')->insert([
+                            'tank_id' => $sale['tank_id'],
+                            'rate' => $sale['rate'],
+                            'total_sales' => $sale['total_sales'],
+                            'total_a_sales' => $sale['total_a_sales'],
+                            'total_testing' => $sale['total_testing'],
+                            'total_amount' => $sale['total_amount'],
+                            'date' => $date,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
                 }
             });
 
             return response()->json(['message' => 'Data saved successfully.'], 200);
         } catch (\Exception $e) {
-            // Log the error for debugging
             Log::error('Error saving fuel sales data: ', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Failed to save data.'], 500);
         }
     }
+
+
+    // public function store(Request $request)
+    // {
+    //     $validatedData = $request->validate([
+    //         'fuelSalesDetails.*.tank_id' => 'required|integer|exists:tanks,id',
+    //         'fuelSalesDetails.*.machine_id' => 'required|integer|exists:machines,id',
+    //         'fuelSalesDetails.*.nozzle_name' => 'required|string',
+    //         'fuelSalesDetails.*.opening' => 'required|numeric',
+    //         'fuelSalesDetails.*.closing' => 'required|numeric',
+    //         'fuelSalesDetails.*.sale' => 'required|numeric',
+    //         'fuelSalesDetails.*.testing' => 'required|numeric',
+    //         'fuelSalesDetails.*.a_sale' => 'required|numeric',
+    //         'tankFuelSales' => 'required|array',
+    //         'tankFuelSales.*.tank_id' => 'required|integer|exists:tanks,id',
+    //         'tankFuelSales.*.rate' => 'required|numeric',
+    //         'tankFuelSales.*.total_sales' => 'required|numeric',
+    //         'tankFuelSales.*.total_a_sales' => 'required|numeric',
+    //         'tankFuelSales.*.total_testing' => 'required|numeric',
+    //         'tankFuelSales.*.total_amount' => 'required|numeric',
+    //         'date' => 'required|date', // Validate the date field
+    //     ]);
+
+    //     $date = $validatedData['date']; // Get the date from the request
+
+    //     try {
+    //         DB::transaction(function () use ($validatedData, $date) {
+    //             // Insert fuel sales details
+    //             foreach ($validatedData['fuelSalesDetails'] as $detail) {
+    //                 DB::table('fuel_sales_details')->insert([
+    //                     'tank_id' => $detail['tank_id'],
+    //                     'machine_id' => $detail['machine_id'],
+    //                     'nozzle_name' => $detail['nozzle_name'],
+    //                     'opening' => $detail['opening'],
+    //                     'closing' => $detail['closing'],
+    //                     'sale' => $detail['sale'],
+    //                     'testing' => $detail['testing'],
+    //                     'a_sale' => $detail['a_sale'],
+    //                     'date' => $date, // Add the date field here
+    //                     'added_by' => auth()->id(),
+    //                     'created_at' => now(),
+    //                     'updated_at' => now(),
+    //                 ]);
+    //             }
+
+    //             // Insert tank fuel sales
+    //             foreach ($validatedData['tankFuelSales'] as $sale) {
+    //                 DB::table('tank_fule_sales')->insert([
+    //                     'tank_id' => $sale['tank_id'],
+    //                     'rate' => $sale['rate'],
+    //                     'total_sales' => $sale['total_sales'],
+    //                     'total_a_sales' => $sale['total_a_sales'],
+    //                     'total_testing' => $sale['total_testing'],
+    //                     'total_amount' => $sale['total_amount'],
+    //                     'date' => $date, // Add the date field here
+    //                     'created_at' => now(),
+    //                     'updated_at' => now(),
+    //                 ]);
+    //             }
+    //         });
+
+    //         return response()->json(['message' => 'Data saved successfully.'], 200);
+    //     } catch (\Exception $e) {
+    //         // Log the error for debugging
+    //         Log::error('Error saving fuel sales data: ', ['error' => $e->getMessage()]);
+    //         return response()->json(['error' => 'Failed to save data.'], 500);
+    //     }
+    // }
 
 
     // public function store(Request $request)

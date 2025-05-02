@@ -8,25 +8,30 @@ use Illuminate\Http\Request;
 
 class ExpenseController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $date = $request->query('date', now()->toDateString()); // 👈 Get date from query or today if not sent
 
         $expenses = Expense::with('topic')
-        ->whereDate('created_at', now())
-        ->get();
+            ->whereDate('date', $date) // 👈 Filter by `date` column (not created_at)
+            ->get();
+
         $topics = ExpensesTopic::where('status', true)->get();
+
         return response()->json([
             'expenses' => $expenses,
             'topics' => $topics,
         ]);
     }
 
+
     public function store(Request $request)
     {
         $request->validate([
             'expenses_id' => 'required|exists:expenses_topics,id',
             'amount' => 'required|numeric|min:0',
-            'narration' => 'required|string',
+            'narration' => 'nullable|string',
+            'date' => 'required|date', // 👈 Validate date also
         ]);
 
         $expense = Expense::create([
@@ -34,6 +39,7 @@ class ExpenseController extends Controller
             'amount' => $request->amount,
             'narration' => $request->narration,
             'added_by' => auth()->id(),
+            'date' => $request->date, // 👈 Store selectedDate
         ]);
 
         return response()->json($expense, 201);
@@ -46,7 +52,8 @@ class ExpenseController extends Controller
         $request->validate([
             'expenses_id' => 'required|exists:expenses_topics,id',
             'amount' => 'required|numeric|min:0',
-            'narration' => 'required|string',
+            'narration' => 'nullable|string',
+            'date' => 'required|date', // 👈 validate
         ]);
 
         $expense->update([
@@ -54,6 +61,7 @@ class ExpenseController extends Controller
             'amount' => $request->amount,
             'narration' => $request->narration,
             'updated_by' => auth()->id(),
+            'date' => $request->date, // 👈 update date
         ]);
 
         return response()->json($expense);

@@ -21,14 +21,9 @@ use Illuminate\Support\Facades\Validator;
 
 class DayEndController extends Controller
 {
-    /**
-     * Store a newly created resource in storage.
-     */
-
     public function store(Request $request)
     {
         try {
-            // Validate request
             $validated = $request->validate([
                 'total_incoming' => 'required|numeric',
                 'total_outgoing' => 'required|numeric',
@@ -37,13 +32,14 @@ class DayEndController extends Controller
                 'add_bank_deposit_id' => 'required|exists:add_bank_deposits,id',
                 'short' => 'required|numeric',
                 't_short' => 'required|numeric',
+                'date' => 'required|date', // ✅ validate the incoming date
             ]);
 
-            // Check if the record already exists for the given date
-            $existingRecord = DayEnd::where('date', now()->toDateString())->first();
+            $date = $validated['date']; // ✅ use the date from request
+
+            $existingRecord = DayEnd::where('date', $date)->first();
 
             if ($existingRecord) {
-                // Update existing record
                 $existingRecord->update([
                     'total_incoming' => $validated['total_incoming'],
                     'total_outgoing' => $validated['total_outgoing'],
@@ -56,7 +52,6 @@ class DayEndController extends Controller
 
                 return response()->json(['message' => 'Data updated successfully', 'data' => $existingRecord], 200);
             } else {
-                // If no existing record, create a new one
                 $dayEnd = DayEnd::create([
                     'total_incoming' => $validated['total_incoming'],
                     'total_outgoing' => $validated['total_outgoing'],
@@ -65,7 +60,7 @@ class DayEndController extends Controller
                     'add_bank_deposit_id' => $validated['add_bank_deposit_id'],
                     'short' => $validated['short'] ?? null,
                     't_short' => $validated['t_short'] ?? null,
-                    'date' => now()->toDateString(),
+                    'date' => $date, // ✅ save the correct date
                 ]);
 
                 return response()->json(['message' => 'Data stored successfully', 'data' => $dayEnd], 200);
@@ -75,28 +70,76 @@ class DayEndController extends Controller
             return response()->json(['message' => 'Error storing data', 'error' => $e->getMessage()], 500);
         }
     }
-    public function fetchProfitData()
-    {
-        $today = now()->toDateString(); // Get today's date
 
-        // Fetch today's day start rates
+    // public function store(Request $request)
+    // {
+    //     try {
+    //         $validated = $request->validate([
+    //             'total_incoming' => 'required|numeric',
+    //             'total_outgoing' => 'required|numeric',
+    //             'total_balance_cash' => 'required|numeric',
+    //             'to_bank_on_date_cash' => 'required|numeric',
+    //             'add_bank_deposit_id' => 'required|exists:add_bank_deposits,id',
+    //             'short' => 'required|numeric',
+    //             't_short' => 'required|numeric',
+    //         ]);
+
+    //         $date = now()->toDateString();
+
+    //         $existingRecord = DayEnd::where('date', $date)->first();
+
+    //         if ($existingRecord) {
+    //             $existingRecord->update([
+    //                 'total_incoming' => $validated['total_incoming'],
+    //                 'total_outgoing' => $validated['total_outgoing'],
+    //                 'total_balance_cash' => $validated['total_balance_cash'],
+    //                 'to_bank_on_date_cash' => $validated['to_bank_on_date_cash'],
+    //                 'add_bank_deposit_id' => $validated['add_bank_deposit_id'],
+    //                 'short' => $validated['short'] ?? null,
+    //                 't_short' => $validated['t_short'] ?? null,
+    //             ]);
+
+    //             return response()->json(['message' => 'Data updated successfully', 'data' => $existingRecord], 200);
+    //         } else {
+    //             $dayEnd = DayEnd::create([
+    //                 'total_incoming' => $validated['total_incoming'],
+    //                 'total_outgoing' => $validated['total_outgoing'],
+    //                 'total_balance_cash' => $validated['total_balance_cash'],
+    //                 'to_bank_on_date_cash' => $validated['to_bank_on_date_cash'],
+    //                 'add_bank_deposit_id' => $validated['add_bank_deposit_id'],
+    //                 'short' => $validated['short'] ?? null,
+    //                 't_short' => $validated['t_short'] ?? null,
+    //                 'date' => $date,
+    //             ]);
+
+    //             return response()->json(['message' => 'Data stored successfully', 'data' => $dayEnd], 200);
+    //         }
+    //     } catch (\Exception $e) {
+    //         Log::error('Error storing day end data: ' . $e->getMessage());
+    //         return response()->json(['message' => 'Error storing data', 'error' => $e->getMessage()], 500);
+    //     }
+    // }
+
+    public function fetchProfitData(Request $request)
+    {
+        $date = $request->query('date');
+        $today = Carbon::parse($date)->toDateString();
+
         $dayStartRates = DayStart::whereDate('date', $today)->first();
 
-        // Ensure we have a valid object for day rates to avoid errors
         $msRate = $dayStartRates->ms_rate_day ?? 0;
         $speedRate = $dayStartRates->speed_rate_day ?? 0;
         $hsdRate = $dayStartRates->hsd_rate_day ?? 0;
 
-        // Fetch today's tank fuel sales and group by product
-        $tankFuelSales = TankFuleSale::whereDate('created_at', $today)
-            ->with('tank') // Ensure the relationship is loaded
+        $tankFuelSales = TankFuleSale::whereDate('date', $today)
+            ->with('tank')
             ->get()
-            ->filter(fn($sale) => $sale->tank !== null) // Exclude records with no related tank
+            ->filter(fn($sale) => $sale->tank !== null)
             ->groupBy(fn($sale) => $sale->tank->product ?? 'Unknown')
             ->map(function ($group, $product) use ($msRate, $speedRate, $hsdRate) {
                 $rate = match ($product) {
                     'MS' => $msRate,
-                    'MS(speed)' => $speedRate,
+                    'SPEED' => $speedRate,
                     'HSD' => $hsdRate,
                     default => 0,
                 };
@@ -107,10 +150,9 @@ class DayEndController extends Controller
                     'rate' => $rate,
                 ];
             })
-            ->values(); // Reset array indexes
+            ->values();
 
-        // Fetch Hand Loans with Credit-In Voucher Type
-        $handLoansTotal = HandLoan::whereDate('created_at', $today)
+        $handLoansTotal = HandLoan::whereDate('date', $today)
             ->where('voucher_type', 'Credit-In')
             ->sum('amount');
 
@@ -121,18 +163,8 @@ class DayEndController extends Controller
             ]
         ];
 
-        // Fetch and sum Credit Client Amount
-        // $creditClientSum = CreditClient::whereDate('created_at', $today)->sum('amount');
-        // $creditClientData = [
-        //     [
-        //         'product' => 'Credit Client Total',
-        //         'amount' => $creditClientSum,
-        //     ]
-        // ];
-
-        // Fetch all advances with client names
-        $advancesData = Advance::whereDate('created_at', $today)
-            ->where('voucher_type', 'Receipt From') // Filter by voucher_type
+        $advancesData = Advance::whereDate('date', $today)
+            ->where('voucher_type', 'Receipt From')
             ->with('client')
             ->get()
             ->map(fn($advance) => [
@@ -145,177 +177,59 @@ class DayEndController extends Controller
                 'product' => 'Advances (Receipt From)',
                 'details' => $advancesData->toArray(),
             ]
-
         ];
 
-
-        // Combine All Data
         $allData = collect()
             ->merge($tankFuelSales)
             ->merge($handLoans)
-            // ->merge($creditClientData)
             ->merge($advances);
 
         return response()->json(['data' => $allData]);
     }
 
-
-
-    // public function fetchprofitData()
-    // {
-    //     $today = now()->toDateString(); // Get today's date
-
-    //     // Fetch Tank Fuel Sales and group by Product from Tanks table
-    //     $tankFuelSales = TankFuleSale::whereDate('created_at', $today)
-    //         ->with('tank')
-    //         ->get()
-    //         ->groupBy(function ($sale) {
-    //             return $sale->tank->product ?? 'Unknown';
-    //         })
-    //         ->map(function ($group, $product) {
-    //             return [
-    //                 'product' => $product,
-    //                 'amount' => $group->sum('total_amount'),
-    //             ];
-    //         })->values();
-
-    //     // Fetch Hand Loans with Credit-In Voucher Type
-    //     $handLoansTotal = HandLoan::whereDate('created_at', $today)
-    //         ->where('voucher_type', 'Credit-In')
-    //         ->sum('amount'); // Sum up the amount column
-
-    //     $handLoans = [
-    //         [
-    //             'product' => 'Hand Loan', // Representing the total sum
-    //             'amount' => $handLoansTotal,
-
-    //         ]
-    //     ];
-
-
-    //     // Fetch and sum Credit Client Amount
-    //     $creditClientSum = CreditClient::whereDate('created_at', $today)->sum('amount');
-    //     $creditClientData = [
-    //         [
-
-    //             'product' => 'Credit Client Total',
-    //             'amount' => $creditClientSum,
-
-    //         ]
-    //     ];
-
-    //     // Fetch all advances with client names
-    //     $advancesData = Advance::whereDate('created_at', $today)
-    //         ->with('client')
-    //         ->get()
-    //         ->map(function ($advance) {
-    //             return [
-    //                 'client' => $advance->client->client_name ?? 'Unknown Client',
-    //                 'amount' => $advance->amount,
-    //             ];
-    //         });
-
-    //     $advances = [
-    //         [
-    //             'product' => 'Advances',
-    //             'details' => $advancesData->toArray(), // Store clients with amounts
-    //         ]
-    //     ];
-
-    //     // Combine All Data
-    //     $allData = $tankFuelSales->merge($handLoans)->merge($creditClientData)->merge($advances);
-
-    //     // Combine All Data
-    //     // $allData = $tankFuelSales->merge($handLoans)->merge($creditClientData);
-
-    //     return response()->json(['data' => $allData]);
-    // }
-    public function fetchLossDatatest()
-{
-    $expenses = Expense::all(); // Fetch all expenses
-    $handloan = Handloan::where('type', 'debit-out')->get(); // Fetch handloan debit-out transactions
-
-    $lossData = [
-        [
-            'title' => 'Other Expenses',
-            'total_amount' => $expenses->sum('amount'),
-            'expenses' => $expenses->map(function ($expense) {
-                return [
-                    'name' => $expense->name,
-                    'amount' => $expense->amount,
-                ];
-            }),
-        ],
-        [
-            'title' => 'Handloan Debit-Out',
-            'total_amount' => $handloan->sum('amount'),
-            'expenses' => $handloan->map(function ($loan) {
-                return [
-                    'name' => 'Handloan to ' . $loan->receiver,
-                    'amount' => $loan->amount,
-                ];
-            }),
-        ],
-    ];
-
-    return response()->json(['data' => $lossData]);
-}
-
-
-    public function fetchLossData()
+    public function fetchLossData(Request $request)
     {
-        $today = now()->toDateString(); // Get today's date
+        $date = $request->query('date');
+        $today = Carbon::parse($date)->toDateString();
 
-        // Fetch all bank deposits made today
-        $bankDeposits = BankDeposit::whereDate('created_at', $today)
+        $bankDeposits = BankDeposit::whereDate('date', $today)
             ->get(['amount']);
-        // Calculate the total sum of the bank deposit amounts
         $totalBankDepositAmount = $bankDeposits->sum('amount');
 
-        // Fetch all wallet payments made today
-        $walletPayments = WalletPayment::whereDate('created_at', $today)
+        $walletPayments = WalletPayment::whereDate('date', $today)
             ->get(['amount']);
-        // Calculate the total sum of the wallet payment amounts
         $totalWalletAmount = $walletPayments->sum('amount');
 
-        // Fetch all petrol card payments made today
-        $petrolCards = PetrolCard::whereDate('created_at', $today)
+        $petrolCards = PetrolCard::whereDate('date', $today)
             ->get(['amount']);
-        // Calculate the total sum of the petrol card amounts
         $totalPetrolCardAmount = $petrolCards->sum('amount');
 
-        // Fetch all credit client payments made today
-        $creditClients = CreditClient::whereDate('created_at', $today)
+        $creditClients = CreditClient::whereDate('date', $today)
             ->get(['amount']);
-        // Calculate the total sum of the credit client amounts
         $totalCreditClientAmount = $creditClients->sum('amount');
 
-        // Fetch all expenses made today along with the related topic names
-        $expenses = Expense::whereDate('created_at', $today)
-            ->with('topic') // Eager load the related topic
+        $expenses = Expense::whereDate('date', $today)
+            ->with('topic')
             ->get(['amount', 'expenses_id']);
 
-        // Format the expenses data with their topic name and amount
         $formattedExpenses = $expenses->map(function ($expense) {
             return [
-                'name' => $expense->topic->name, // Access the topic name
-                'amount' => $expense->amount, // Access the expense amount
+                'name' => $expense->topic->name,
+                'amount' => $expense->amount,
             ];
         });
 
-         // Fetch Hand Loans with Credit-In Voucher Type
-         $handLoansTotal = HandLoan::whereDate('created_at', $today)
-         ->where('voucher_type', 'Debit-In')
-         ->sum('amount');
+        $handLoansTotal = HandLoan::whereDate('date', $today)
+            ->where('voucher_type', 'Debit-In')
+            ->sum('amount');
 
-     $handLoans = [
-         [
-             'product' => 'HandLoan (Credit-in)',
-             'amount' => $handLoansTotal,
-         ]
-     ];
+        $handLoans = [
+            [
+                'product' => 'HandLoan (Credit-in)',
+                'amount' => $handLoansTotal,
+            ]
+        ];
 
-        // Return the data with the total sums and expenses
         return response()->json([
             'data' => [
                 [
@@ -336,32 +250,38 @@ class DayEndController extends Controller
                 ],
                 [
                     'title' => 'Other Expenses',
-                    'expenses' => $formattedExpenses, // Add the formatted expenses data
+                    'expenses' => $formattedExpenses,
                 ],
             ]
         ]);
     }
+
     public function getBankNames()
     {
         $banks = AddBankDeposit::select('id', 'bank_name', 'account_number', 'bank_branch')->where('show', true)->get();
         return response()->json(['banks' => $banks]);
     }
-    // public function getStoredData()
-    // {
-    //     // Assuming you have a 'day_end' table to store the day's data
-    //     $dayEndData = DayEnd::latest()->first(); // Get the latest day's data
-    //     return response()->json($dayEndData);  // Return the data as JSON
-    // }
 
-    public function getStoredData()
+    public function getStoredData(Request $request)
     {
-        // Get today's date
-        $today = Carbon::today();
+        $date = $request->query('date');
+        $today = Carbon::parse($date)->toDateString();
 
-        // Fetch the latest record for today
-        $dayEndData = DayEnd::whereDate('created_at', $today)
+        $dayEndData = DayEnd::whereDate('date', $today)
             ->latest()
             ->first();
+
+        if (!$dayEndData) {
+            return response()->json([
+                'total_incoming' => 0,
+                'total_outgoing' => 0,
+                'total_balance_cash' => 0,
+                'to_bank_on_date_cash' => 0,
+                'add_bank_deposit_id' => null,
+                'short' => 0,
+                't_short' => 0,
+            ]);
+        }
 
         return response()->json($dayEndData);
     }

@@ -22,6 +22,7 @@ class RetailSalesRecord extends Model
         'sale_amt',
         'discount_amt',
         'act_sale_amt',
+        'date',
     ];
 
     /**
